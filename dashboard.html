@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DR Manager — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #060a12; --surface: #0e1520; --surface2: #141d2e; --surface3: #1a2438;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --accent: #ff3b3b; --accent2: #ff6b35; --blue: #3b82f6;
+      --green: #00d68f; --yellow: #ffcb57; --purple: #8b5cf6;
+      --text: #e8edf5; --muted: #6b7a99; --muted2: #8892aa;
+      --font: 'Outfit', sans-serif; --mono: 'JetBrains Mono', monospace;
+      --sw: 250px; --th: 64px; --radius: 12px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    ul { list-style: none; }
+    img { max-width: 100%; display: block; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: var(--sw); height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100;
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+    }
+    .sidebar-logo {
+      padding: 22px 20px 18px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 1.05rem; font-weight: 800;
+    }
+    .logo-icon {
+      width: 38px; height: 38px; background: var(--accent);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      font-size: .95rem; color: #fff; flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(255,59,59,0.4);
+    }
+    .logo-text strong { color: var(--accent); }
+    .sidebar-nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
+    .nav-section-label {
+      font-size: .62rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); padding: 12px 10px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 10px 12px; border-radius: 9px;
+      color: var(--muted); font-size: .875rem; font-weight: 500;
+      transition: all .18s; margin-bottom: 2px; cursor: pointer;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .nav-item.active { background: rgba(255,59,59,0.12); color: var(--accent); }
+    .nav-item i { width: 18px; text-align: center; font-size: .9rem; }
+    .nav-badge {
+      margin-left: auto; background: var(--accent); color: #fff;
+      border-radius: 10px; padding: 1px 8px; font-size: .68rem; font-weight: 700;
+    }
+    .sidebar-bottom { padding: 12px 10px; border-top: 1px solid var(--border); }
+    .user-sidebar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      transition: background .18s; cursor: pointer;
+    }
+    .user-sidebar:hover { background: rgba(255,255,255,0.05); }
+    .user-av {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .user-info { flex: 1; overflow: hidden; }
+    .user-info .u-name { font-size: .84rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-info .u-role { font-size: .72rem; color: var(--muted); }
+    .logout-btn { color: var(--muted); font-size: .85rem; transition: color .18s; padding: 4px; cursor: pointer; }
+    .logout-btn:hover { color: var(--accent); }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: fixed; top: 0; left: var(--sw); right: 0; height: var(--th);
+      background: rgba(14,21,32,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px; padding: 0 24px; z-index: 90;
+    }
+    .hamburger { display: none; background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 6px; }
+    .page-heading { font-size: 1rem; font-weight: 700; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+    .search-bar {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 16px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; width: 220px; font-size: .84rem; color: var(--muted);
+      cursor: text; transition: all .2s;
+    }
+    .search-bar:hover { border-color: var(--border2); }
+    .icon-btn {
+      width: 36px; height: 36px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--muted); font-size: .85rem; transition: all .2s;
+      position: relative;
+    }
+    .icon-btn:hover { background: var(--surface3); color: var(--text); }
+    .notif-dot {
+      position: absolute; top: 7px; right: 7px; width: 7px; height: 7px;
+      background: var(--accent); border-radius: 50%; border: 1.5px solid var(--surface);
+    }
+    .btn-new-plan {
+      display: flex; align-items: center; gap: 7px; padding: 8px 18px;
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      font-family: var(--font); font-size: .84rem; font-weight: 700; cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-new-plan:hover { background: #d62f2f; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,59,59,0.3); }
+
+    /* ── Main Content ── */
+    .main-content { margin-left: var(--sw); padding-top: var(--th); min-height: 100vh; }
+    .page-body { padding: 28px 28px 40px; }
+
+    /* ── Page Header ── */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+    .ph-left h1 { font-size: 1.6rem; font-weight: 900; letter-spacing: -.5px; }
+    .ph-left p { font-size: .84rem; color: var(--muted); margin-top: 3px; }
+    .ph-right { display: flex; align-items: center; gap: 10px; }
+    .date-badge {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 14px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; font-size: .78rem; color: var(--muted);
+    }
+
+    /* ── Stats Cards ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px; position: relative;
+      overflow: hidden; transition: all .2s; cursor: default;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+    }
+    .stat-card.c-red::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .stat-card.c-orange::before { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .stat-card.c-green::before { background: linear-gradient(90deg, var(--green), #34d399); }
+    .stat-card.c-blue::before { background: linear-gradient(90deg, var(--blue), #60a5fa); }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--border2); }
+    .stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    }
+    .c-red .stat-icon { background: rgba(255,59,59,0.12); color: var(--accent); }
+    .c-orange .stat-icon { background: rgba(249,115,22,0.12); color: #fb923c; }
+    .c-green .stat-icon { background: rgba(0,214,143,0.12); color: var(--green); }
+    .c-blue .stat-icon { background: rgba(59,130,246,0.12); color: var(--blue); }
+    .stat-trend {
+      font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .trend-up { background: rgba(0,214,143,0.1); color: var(--green); }
+    .trend-down { background: rgba(255,59,59,0.1); color: var(--accent); }
+    .stat-val { font-size: 2rem; font-weight: 900; line-height: 1; margin-bottom: 4px; font-family: var(--mono); }
+    .stat-lbl { font-size: .8rem; color: var(--muted); font-weight: 500; }
+
+    /* ── Charts ── */
+    .charts-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 24px; }
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
+    }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .chart-header h3 { font-size: .9rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .chart-header h3 i { color: var(--accent); }
+    .chart-meta { font-size: .73rem; color: var(--muted); }
+    .chart-tabs { display: flex; gap: 4px; }
+    .chart-tab {
+      padding: 5px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600;
+      cursor: pointer; transition: all .18s; color: var(--muted); border: none; background: none; font-family: var(--font);
+    }
+    .chart-tab.active { background: rgba(255,59,59,0.12); color: var(--accent); }
+
+    /* ── Stoplight Summary ── */
+    .stoplight-summary {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px;
+    }
+    .sl-card {
+      padding: 18px; border-radius: var(--radius); border: 1px solid;
+      display: flex; align-items: center; gap: 14px; transition: all .2s;
+    }
+    .sl-card:hover { transform: translateY(-2px); }
+    .sl-card.green { background: rgba(0,214,143,0.06); border-color: rgba(0,214,143,0.2); }
+    .sl-card.yellow { background: rgba(255,203,87,0.06); border-color: rgba(255,203,87,0.2); }
+    .sl-card.red { background: rgba(255,59,59,0.06); border-color: rgba(255,59,59,0.2); }
+    .sl-indicator { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+    .sl-card.green .sl-indicator { background: var(--green); box-shadow: 0 0 10px var(--green); }
+    .sl-card.yellow .sl-indicator { background: var(--yellow); box-shadow: 0 0 10px var(--yellow); }
+    .sl-card.red .sl-indicator { background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: pulseDot 1.5s ease-in-out infinite; }
+    @keyframes pulseDot { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .sl-info {}
+    .sl-count { font-size: 1.4rem; font-weight: 800; font-family: var(--mono); line-height: 1; }
+    .sl-card.green .sl-count { color: var(--green); }
+    .sl-card.yellow .sl-count { color: var(--yellow); }
+    .sl-card.red .sl-count { color: var(--accent); }
+    .sl-desc { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Table Card ── */
+    .table-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 24px;
+    }
+    .tc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; border-bottom: 1px solid var(--border);
+    }
+    .tc-header h3 { font-size: .9rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .tc-header h3 i { color: var(--accent); }
+    .tc-actions { display: flex; align-items: center; gap: 8px; }
+    .filter-select {
+      padding: 7px 12px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text); font-family: var(--font); font-size: .78rem;
+      cursor: pointer; outline: none;
+    }
+    .btn-ghost {
+      padding: 7px 14px; background: transparent; border: 1px solid var(--border);
+      border-radius: 7px; color: var(--muted); font-family: var(--font); font-size: .78rem;
+      cursor: pointer; transition: all .18s;
+    }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    thead tr { background: var(--surface2); }
+    th { padding: 11px 16px; text-align: left; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); white-space: nowrap; }
+    td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background .15s; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .td-plan a { font-weight: 600; color: var(--text); font-size: .875rem; display: block; }
+    .td-plan a:hover { color: var(--accent); }
+    .td-plan small { font-size: .72rem; color: var(--muted); }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+    .badge-type { background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+    .badge-sev-low { background: rgba(0,214,143,0.1); color: #6ee7b7; border: 1px solid rgba(0,214,143,0.2); }
+    .badge-sev-medium { background: rgba(255,203,87,0.1); color: #fde047; border: 1px solid rgba(255,203,87,0.2); }
+    .badge-sev-high { background: rgba(249,115,22,0.12); color: #fdba74; border: 1px solid rgba(249,115,22,0.2); }
+    .badge-sev-critical { background: rgba(255,59,59,0.12); color: #fca5a5; border: 1px solid rgba(255,59,59,0.2); }
+    .badge-planned { background: rgba(59,130,246,0.1); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+    .badge-progress { background: rgba(255,203,87,0.1); color: #fde047; border: 1px solid rgba(255,203,87,0.2); }
+    .badge-completed { background: rgba(0,214,143,0.1); color: #6ee7b7; border: 1px solid rgba(0,214,143,0.2); }
+    .stoplight-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .72rem; font-weight: 700;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+    .dot-red { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .sp-green { color: var(--green); }
+    .sp-yellow { color: var(--yellow); }
+    .sp-red { color: var(--accent); }
+    .td-actions { display: flex; align-items: center; gap: 6px; }
+    .act-btn {
+      width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .74rem; transition: all .18s;
+    }
+    .act-btn:hover { background: var(--surface3); color: var(--text); }
+    .act-btn.del:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Bottom Row ── */
+    .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+    /* Activity Feed */
+    .activity-list { padding: 0 20px; }
+    .activity-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .act-icon {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: .8rem;
+    }
+    .act-red { background: rgba(255,59,59,0.12); color: var(--accent); }
+    .act-green { background: rgba(0,214,143,0.12); color: var(--green); }
+    .act-blue { background: rgba(59,130,246,0.12); color: var(--blue); }
+    .act-yellow { background: rgba(255,203,87,0.12); color: var(--yellow); }
+    .act-body { flex: 1; }
+    .act-body strong { font-size: .84rem; font-weight: 600; }
+    .act-body p { font-size: .75rem; color: var(--muted); margin-top: 1px; }
+    .act-time { font-size: .7rem; color: var(--muted); white-space: nowrap; }
+
+    /* Team Progress */
+    .team-list { padding: 0 20px; }
+    .team-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .team-item:last-child { border-bottom: none; }
+    .team-av {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .av-r { background: linear-gradient(135deg, #ff3b3b, #ff6b35); }
+    .av-b { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+    .av-g { background: linear-gradient(135deg, #00d68f, #0ea5e9); }
+    .av-y { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+    .team-info { flex: 1; }
+    .team-info .t-name { font-size: .84rem; font-weight: 600; }
+    .team-info .t-role { font-size: .72rem; color: var(--muted); }
+    .team-right { text-align: right; }
+    .team-plans { font-size: .84rem; font-weight: 700; font-family: var(--mono); }
+    .progress-mini { width: 70px; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin-top: 3px; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+    .pf-red { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .pf-blue { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+    .pf-green { background: linear-gradient(90deg, var(--green), #34d399); }
+    .pf-yellow { background: linear-gradient(90deg, var(--yellow), #f97316); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      padding: 14px 20px; border-radius: 10px; font-size: .84rem;
+      font-weight: 600; display: flex; align-items: center; gap: 10px;
+      box-shadow: var(--shadow); transform: translateY(80px);
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); pointer-events: all; }
+    .toast.success { background: var(--green); color: #fff; }
+    .toast.error { background: var(--accent); color: #fff; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px; max-width: 440px; width: 100%;
+      box-shadow: var(--shadow); text-align: center; animation: modalIn .25s ease;
+    }
+    @keyframes modalIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+    .modal-icon { width: 56px; height: 56px; border-radius: 50%; background: rgba(255,59,59,0.12); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--accent); margin: 0 auto 16px; }
+    .modal-box h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+    .modal-box p { font-size: .875rem; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+    .modal-btns { display: flex; gap: 10px; justify-content: center; }
+    .btn-cancel { padding: 10px 24px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; font-family: var(--font); font-size: .875rem; transition: all .18s; }
+    .btn-cancel:hover { color: var(--text); }
+    .btn-confirm { padding: 10px 24px; background: var(--accent); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-family: var(--font); font-size: .875rem; font-weight: 700; transition: all .18s; }
+    .btn-confirm:hover { background: #d62f2f; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); box-shadow: 4px 0 30px rgba(0,0,0,.6); }
+      .topbar { left: 0; }
+      .hamburger { display: flex; }
+      .main-content { margin-left: 0; }
+      .bottom-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .page-body { padding: 16px; }
+      .stats-grid { grid-template-columns: repeat(2,1fr); gap: 12px; }
+      .stoplight-summary { grid-template-columns: 1fr; }
+      .search-bar { display: none; }
+      .ph-right { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><i class="fas fa-shield-virus"></i></div>
+    <div class="logo-text">DR<strong>Manager</strong></div>
+  </div>
+  <nav class="sidebar-nav">
+    <p class="nav-section-label">Main</p>
+    <div class="nav-item active" onclick="setPage('dashboard')"><i class="fas fa-th-large"></i><span>Dashboard</span></div>
+    <div class="nav-item" onclick="setPage('recovery')"><i class="fas fa-clipboard-list"></i><span>Recovery Plans</span><span class="nav-badge">12</span></div>
+    <div class="nav-item" onclick="showToast('Creating new recovery plan…','success')"><i class="fas fa-plus-circle"></i><span>New Plan</span></div>
+    <p class="nav-section-label">Operations</p>
+    <div class="nav-item" onclick="setPage('teams')"><i class="fas fa-users"></i><span>Recovery Teams</span></div>
+    <div class="nav-item" onclick="setPage('risks')"><i class="fas fa-traffic-light"></i><span>Risk Register</span></div>
+    <div class="nav-item" onclick="setPage('supply')"><i class="fas fa-link"></i><span>Supply Chain</span></div>
+    <p class="nav-section-label">Reports</p>
+    <div class="nav-item" onclick="setPage('reports')"><i class="fas fa-chart-bar"></i><span>Analytics</span></div>
+    <div class="nav-item" onclick="setPage('lessons')"><i class="fas fa-book-open"></i><span>Lessons Learned</span></div>
+    <p class="nav-section-label">Admin</p>
+    <div class="nav-item" onclick="setPage('users')"><i class="fas fa-users-cog"></i><span>Users</span></div>
+    <div class="nav-item" onclick="setPage('settings')"><i class="fas fa-cog"></i><span>Settings</span></div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-sidebar">
+      <div class="user-av" id="sidebarAv">WT</div>
+      <div class="user-info">
+        <div class="u-name" id="sidebarName">Walt Trybula</div>
+        <div class="u-role" id="sidebarRole">Administrator</div>
+      </div>
+      <div class="logout-btn" onclick="handleLogout()" title="Sign Out"><i class="fas fa-sign-out-alt"></i></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ TOPBAR ══ -->
+<header class="topbar">
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+  <span class="page-heading" id="pageHeading">Dashboard</span>
+  <div class="topbar-right">
+    <div class="search-bar"><i class="fas fa-search"></i> Search plans, teams…</div>
+    <div class="icon-btn" onclick="showToast('2 new notifications','success')">
+      <i class="fas fa-bell"></i><div class="notif-dot"></div>
+    </div>
+    <div class="icon-btn" onclick="setPage('settings')"><i class="fas fa-cog"></i></div>
+    <button class="btn-new-plan" onclick="showToast('Opening new plan form…','success')">
+      <i class="fas fa-plus"></i> New Plan
+    </button>
+  </div>
+</header>
+
+<!-- ══ MAIN CONTENT ══ -->
+<main class="main-content">
+  <div class="page-body">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="ph-left">
+        <h1>Recovery Dashboard</h1>
+        <p>Disaster Recovery Management System — Based on Trybula & Newberry (IEEE EMR 2020)</p>
+      </div>
+      <div class="ph-right">
+        <div class="date-badge"><i class="fas fa-calendar-alt"></i> <span id="currentDate"></span></div>
+        <button class="btn-new-plan" onclick="showToast('Generating PDF report…','success')">
+          <i class="fas fa-download"></i> Export Report
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card c-red">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fas fa-clipboard-list"></i></div>
+          <span class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 12%</span>
+        </div>
+        <div class="stat-val">47</div>
+        <div class="stat-lbl">Total Recovery Plans</div>
+      </div>
+      <div class="stat-card c-orange">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <span class="stat-trend trend-down"><i class="fas fa-arrow-down"></i> 3</span>
+        </div>
+        <div class="stat-val">8</div>
+        <div class="stat-lbl">Active Disasters</div>
+      </div>
+      <div class="stat-card c-green">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fas fa-users"></i></div>
+          <span class="stat-trend trend-up"><i class="fas fa-arrow-up"></i> 2</span>
+        </div>
+        <div class="stat-val">14</div>
+        <div class="stat-lbl">Recovery Teams</div>
+      </div>
+      <div class="stat-card c-blue">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fas fa-radiation-alt"></i></div>
+          <span class="stat-trend trend-down"><i class="fas fa-arrow-down"></i> 5</span>
+        </div>
+        <div class="stat-val">6</div>
+        <div class="stat-lbl">Critical Issues (Red)</div>
+      </div>
+    </div>
+
+    <!-- Stoplight Summary -->
+    <div class="stoplight-summary">
+      <div class="sl-card green">
+        <div class="sl-indicator"></div>
+        <div class="sl-info">
+          <div class="sl-count">23</div>
+          <div class="sl-desc"><strong>Green</strong> — On Track / Safe</div>
+        </div>
+      </div>
+      <div class="sl-card yellow">
+        <div class="sl-indicator"></div>
+        <div class="sl-info">
+          <div class="sl-count">18</div>
+          <div class="sl-desc"><strong>Yellow</strong> — Caution / At Risk</div>
+        </div>
+      </div>
+      <div class="sl-card red">
+        <div class="sl-indicator"></div>
+        <div class="sl-info">
+          <div class="sl-count">6</div>
+          <div class="sl-desc"><strong>Red</strong> — Critical / Action Required</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3><i class="fas fa-chart-bar"></i> Recovery Plans — Monthly</h3>
+          <div class="chart-tabs">
+            <button class="chart-tab active">12M</button>
+            <button class="chart-tab" onclick="switchChart(this,'6m')">6M</button>
+            <button class="chart-tab" onclick="switchChart(this,'3m')">3M</button>
+          </div>
+        </div>
+        <canvas id="barChart" height="90"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3><i class="fas fa-chart-pie"></i> Disaster Types</h3>
+          <span class="chart-meta">47 total</span>
+        </div>
+        <canvas id="pieChart" height="90"></canvas>
+      </div>
+    </div>
+
+    <!-- Recovery Plans Table -->
+    <div class="table-card">
+      <div class="tc-header">
+        <h3><i class="fas fa-clipboard-list"></i> Active Recovery Plans</h3>
+        <div class="tc-actions">
+          <select class="filter-select" onchange="filterTable(this.value)">
+            <option value="">All Statuses</option>
+            <option value="Planned">Planned</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+          <button class="btn-ghost" onclick="showToast('Export started…','success')"><i class="fas fa-download"></i> Export</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="plansTable">
+          <thead>
+            <tr>
+              <th>Plan Title</th>
+              <th>Disaster Type</th>
+              <th>Team Leader</th>
+              <th>Severity</th>
+              <th>Risk Status</th>
+              <th>Status</th>
+              <th>Year</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="bottom-row">
+      <!-- Activity Feed -->
+      <div class="table-card">
+        <div class="tc-header">
+          <h3><i class="fas fa-history"></i> Recent Activity</h3>
+          <button class="btn-ghost">View All</button>
+        </div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <div class="act-icon act-red"><i class="fas fa-plus"></i></div>
+            <div class="act-body"><strong>COVID-19 Restart Plan created</strong><p>Walt Trybula · Pandemic category</p></div>
+            <span class="act-time">2m ago</span>
+          </div>
+          <div class="activity-item">
+            <div class="act-icon act-yellow"><i class="fas fa-edit"></i></div>
+            <div class="act-body"><strong>Supply chain risk updated</strong><p>Deb Newberry · Red → Yellow</p></div>
+            <span class="act-time">15m ago</span>
+          </div>
+          <div class="activity-item">
+            <div class="act-icon act-green"><i class="fas fa-check"></i></div>
+            <div class="act-body"><strong>Workforce retraining completed</strong><p>Team Alpha · HR Department</p></div>
+            <span class="act-time">1h ago</span>
+          </div>
+          <div class="activity-item">
+            <div class="act-icon act-blue"><i class="fas fa-users"></i></div>
+            <div class="act-body"><strong>New recovery team onboarded</strong><p>Team Gamma · 8 members</p></div>
+            <span class="act-time">3h ago</span>
+          </div>
+          <div class="activity-item">
+            <div class="act-icon act-red"><i class="fas fa-exclamation"></i></div>
+            <div class="act-body"><strong>Critical cash flow alert raised</strong><p>Finance Dept · Immediate action needed</p></div>
+            <span class="act-time">5h ago</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recovery Teams -->
+      <div class="table-card">
+        <div class="tc-header">
+          <h3><i class="fas fa-users"></i> Recovery Teams</h3>
+          <button class="btn-ghost">Manage</button>
+        </div>
+        <div class="team-list">
+          <div class="team-item">
+            <div class="team-av av-r">WT</div>
+            <div class="team-info"><div class="t-name">Walt Trybula</div><div class="t-role">Lead Coordinator</div></div>
+            <div class="team-right">
+              <div class="team-plans">12 plans</div>
+              <div class="progress-mini"><div class="progress-fill pf-red" style="width:90%"></div></div>
+            </div>
+          </div>
+          <div class="team-item">
+            <div class="team-av av-b">DN</div>
+            <div class="team-info"><div class="t-name">Deb Newberry</div><div class="t-role">Technology Recovery</div></div>
+            <div class="team-right">
+              <div class="team-plans">9 plans</div>
+              <div class="progress-mini"><div class="progress-fill pf-blue" style="width:72%"></div></div>
+            </div>
+          </div>
+          <div class="team-item">
+            <div class="team-av av-g">JR</div>
+            <div class="team-info"><div class="t-name">James Reed</div><div class="t-role">Supply Chain Recovery</div></div>
+            <div class="team-right">
+              <div class="team-plans">7 plans</div>
+              <div class="progress-mini"><div class="progress-fill pf-green" style="width:58%"></div></div>
+            </div>
+          </div>
+          <div class="team-item">
+            <div class="team-av av-y">SM</div>
+            <div class="team-info"><div class="t-name">Sarah Mitchell</div><div class="t-role">Workforce Management</div></div>
+            <div class="team-right">
+              <div class="team-plans">5 plans</div>
+              <div class="progress-mini"><div class="progress-fill pf-yellow" style="width:42%"></div></div>
+            </div>
+          </div>
+          <div class="team-item">
+            <div class="team-av av-r">AK</div>
+            <div class="team-info"><div class="t-name">Alex Kumar</div><div class="t-role">Financial Recovery</div></div>
+            <div class="team-right">
+              <div class="team-plans">4 plans</div>
+              <div class="progress-mini"><div class="progress-fill pf-red" style="width:35%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-body -->
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg"></span></div>
+
+<!-- Delete Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <div class="modal-icon"><i class="fas fa-trash-alt"></i></div>
+    <h3>Delete Recovery Plan</h3>
+    <p id="deleteModalText">Are you sure? This will permanently delete this recovery plan and its document.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" id="confirmDeleteBtn">Delete Plan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════ DATA ════════
+const PLANS = [
+  { id:1, title:'COVID-19 Pandemic Business Restart', dept:'Operations',   leader:'Walt Trybula', type:'Pandemic',               sev:'High',     risk:'Red',    status:'In Progress', year:2020 },
+  { id:2, title:'Supply Chain Reconstruction Plan',   dept:'Procurement',  leader:'James Reed',   type:'Supply Chain Disruption', sev:'Critical', risk:'Red',    status:'In Progress', year:2021 },
+  { id:3, title:'Remote Workforce Transition',        dept:'HR',           leader:'Deb Newberry', type:'Pandemic',               sev:'Medium',   risk:'Yellow', status:'Completed',   year:2020 },
+  { id:4, title:'Cash Flow Emergency Protocol',       dept:'Finance',      leader:'Alex Kumar',   type:'Other',                  sev:'Critical', risk:'Red',    status:'Planned',     year:2021 },
+  { id:5, title:'Equipment Modernisation Initiative', dept:'Engineering',  leader:'Sarah Mitchell',type:'Other',                 sev:'Low',      risk:'Green',  status:'Planned',     year:2022 },
+  { id:6, title:'Customer Base Re-engagement',        dept:'Sales',        leader:'Walt Trybula', type:'Pandemic',               sev:'Medium',   risk:'Yellow', status:'In Progress', year:2021 },
+  { id:7, title:'Flood Contingency & Recovery',       dept:'Facilities',   leader:'James Reed',   type:'Flood',                  sev:'High',     risk:'Yellow', status:'Planned',     year:2022 },
+  { id:8, title:'Cyber Security Incident Response',   dept:'IT',           leader:'Deb Newberry', type:'Cyber Attack',           sev:'Critical', risk:'Red',    status:'In Progress', year:2023 },
+  { id:9, title:'New Realignment Business Model',     dept:'Strategy',     leader:'Walt Trybula', type:'Pandemic',               sev:'Medium',   risk:'Green',  status:'Completed',   year:2021 },
+  { id:10,title:'Fast Restart — Manufacturing',       dept:'Manufacturing',leader:'Sarah Mitchell',type:'Other',                 sev:'High',     risk:'Green',  status:'Completed',   year:2020 },
+];
+
+// ════════ RENDER TABLE ════════
+function renderTable(filter = '') {
+  const tbody = document.getElementById('tableBody');
+  const data  = filter ? PLANS.filter(p => p.status === filter) : PLANS;
+  tbody.innerHTML = data.map(p => `
+    <tr>
+      <td class="td-plan">
+        <a href="#" onclick="showToast('Opening: ${p.title.substring(0,30)}…','success');return false;">${p.title}</a>
+        <small>${p.dept}</small>
+      </td>
+      <td><span class="badge badge-type">${p.type}</span></td>
+      <td>${p.leader}</td>
+      <td><span class="badge badge-sev-${p.sev.toLowerCase()}">${p.sev}</span></td>
+      <td>
+        <span class="stoplight-pill sp-${p.risk.toLowerCase()}">
+          <span class="dot dot-${p.risk.toLowerCase()}"></span> ${p.risk}
+        </span>
+      </td>
+      <td><span class="badge badge-${p.status==='In Progress'?'progress':p.status.toLowerCase()}">${p.status}</span></td>
+      <td style="font-family:var(--mono);font-size:.82rem;">${p.year}</td>
+      <td class="td-actions">
+        <button class="act-btn" title="View" onclick="showToast('Viewing plan #${p.id}','success')"><i class="fas fa-eye"></i></button>
+        <button class="act-btn" title="Edit" onclick="showToast('Editing plan #${p.id}','success')"><i class="fas fa-pen"></i></button>
+        <button class="act-btn del" title="Delete" onclick="openDeleteModal(${p.id},'${p.title.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterTable(val) { renderTable(val); }
+renderTable();
+
+// ════════ CHARTS ════════
+const BAR_DATA = {
+  '12m': { labels:['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'], data:[2,3,4,5,3,6,4,7,5,8,6,9] },
+  '6m':  { labels:['Oct','Nov','Dec','Jan','Feb','Mar'], data:[4,7,5,8,6,9] },
+  '3m':  { labels:['Jan','Feb','Mar'], data:[8,6,9] },
+};
+let barChart;
+function buildBarChart(key='12m') {
+  const ctx = document.getElementById('barChart').getContext('2d');
+  if (barChart) barChart.destroy();
+  const d = BAR_DATA[key];
+  barChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.labels,
+      datasets: [{
+        label: 'Plans Created',
+        data: d.data,
+        backgroundColor: ctx => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,200);
+          g.addColorStop(0,'rgba(255,59,59,0.85)'); g.addColorStop(1,'rgba(255,107,53,0.3)');
+          return g;
+        },
+        borderColor: '#ff3b3b', borderWidth: 2, borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#141d2e', titleColor: '#e8edf5', bodyColor: '#6b7a99', borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1 } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 2, color: '#6b7a99', font: { family: 'JetBrains Mono' } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { dash: [4,4] } },
+        x: { ticks: { color: '#6b7a99' }, grid: { display: false } }
+      }
+    }
+  });
+}
+buildBarChart();
+
+new Chart(document.getElementById('pieChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Pandemic','Cyber Attack','Flood','Supply Chain','Earthquake','Other'],
+    datasets: [{ data: [18,8,6,7,3,5], backgroundColor: ['#ff3b3b','#3b82f6','#00d68f','#f97316','#8b5cf6','#ffcb57'], borderWidth: 2, borderColor: '#0e1520', hoverOffset: 8 }]
+  },
+  options: {
+    responsive: true, cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#6b7a99', padding: 14, font: { size: 11, family: 'Outfit' }, boxWidth: 10, boxHeight: 10 } },
+      tooltip: { backgroundColor: '#141d2e', titleColor: '#e8edf5', bodyColor: '#6b7a99', borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1 }
+    }
+  }
+});
+
+function switchChart(btn, key) {
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  buildBarChart(key);
+}
+
+// ════════ UI HELPERS ════════
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  const sb = document.getElementById('sidebar');
+  if (!sb.contains(e.target) && !document.getElementById('hamburger').contains(e.target))
+    sb.classList.remove('open');
+});
+
+function setPage(page) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('pageHeading').textContent = page.charAt(0).toUpperCase() + page.slice(1).replace('-',' ');
+  showToast(`Navigating to ${page}…`, 'success');
+}
+
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+let deleteTarget = null;
+function openDeleteModal(id, title) {
+  deleteTarget = id;
+  document.getElementById('deleteModalText').textContent = `Delete "${title}"? This cannot be undone.`;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function closeModal() { document.getElementById('deleteModal').classList.remove('open'); }
+document.getElementById('deleteModal').addEventListener('click', e => { if (e.target === document.getElementById('deleteModal')) closeModal(); });
+document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+  closeModal();
+  showToast(`Plan #${deleteTarget} deleted successfully`, 'success');
+});
+
+function handleLogout() {
+  sessionStorage.removeItem('drUser');
+  showToast('Signing out…', 'success');
+  setTimeout(() => window.location.href = 'login.html', 800);
+}
+
+// ════════ USER HYDRATION ════════
+const saved = sessionStorage.getItem('drUser');
+if (saved) {
+  const u = JSON.parse(saved);
+  document.getElementById('sidebarAv').textContent   = u.avatar;
+  document.getElementById('sidebarName').textContent = u.name;
+  document.getElementById('sidebarRole').textContent = u.role === 'admin' ? 'Administrator' : 'Recovery Manager';
+}
+
+// ════════ DATE ════════
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+</script>
+</body>
+</html>

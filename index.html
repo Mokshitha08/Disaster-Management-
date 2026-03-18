@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DR Manager — Disaster Recovery Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    /* ════════════════════════════════════════
+       CSS VARIABLES & RESET
+    ════════════════════════════════════════ */
+    :root {
+      --bg:       #07090f;
+      --bg2:      #0d111c;
+      --bg3:      #141923;
+      --surface:  #1a2235;
+      --border:   rgba(255,255,255,0.07);
+      --border2:  rgba(255,255,255,0.12);
+      --accent:   #ff3333;
+      --accent2:  #ff6428;
+      --green:    #00e5a0;
+      --yellow:   #ffc542;
+      --blue:     #4d9eff;
+      --purple:   #a855f7;
+      --text:     #edf1f9;
+      --muted:    #64748b;
+      --muted2:   #94a3b8;
+      --syne:     'Syne', sans-serif;
+      --dm:       'DM Sans', sans-serif;
+      --mono:     'JetBrains Mono', monospace;
+      --nav-h:    72px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--dm);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 4px; }
+
+    /* ════════════════════════════════════════
+       ANIMATED BG CANVAS
+    ════════════════════════════════════════ */
+    .bg-fx {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(100px); opacity: 0.12;
+      animation: floatOrb 18s ease-in-out infinite;
+    }
+    .orb1 { width: 700px; height: 700px; background: radial-gradient(#ff3333, transparent 70%); top: -200px; left: -200px; animation-delay: 0s; }
+    .orb2 { width: 500px; height: 500px; background: radial-gradient(#ff6428, transparent 70%); bottom: -150px; right: -150px; animation-delay: -6s; }
+    .orb3 { width: 400px; height: 400px; background: radial-gradient(#4d9eff, transparent 70%); top: 50%; left: 60%; animation-delay: -12s; }
+    @keyframes floatOrb {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(40px,-30px) scale(1.08); }
+      66% { transform: translate(-30px,40px) scale(0.94); }
+    }
+    .grid-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,51,51,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,51,51,0.035) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* ════════════════════════════════════════
+       NAVBAR
+    ════════════════════════════════════════ */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: var(--nav-h);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px;
+      transition: all 0.35s ease;
+    }
+    .navbar.scrolled {
+      background: rgba(7,9,15,0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+    }
+
+    /* Logo */
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--syne); font-size: 1.15rem; font-weight: 800;
+      cursor: pointer;
+    }
+    .logo-shield {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.05rem; color: #fff;
+      box-shadow: 0 0 20px rgba(255,51,51,0.45);
+      transition: transform 0.2s;
+    }
+    .nav-logo:hover .logo-shield { transform: rotate(-8deg) scale(1.08); }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .logo-text .main { color: var(--text); letter-spacing: -0.3px; }
+    .logo-text .sub { font-size: 0.6rem; font-weight: 400; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--dm); }
+
+    /* Nav Links */
+    .nav-links {
+      display: flex; align-items: center; gap: 4px;
+    }
+    .nav-link {
+      padding: 8px 16px; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 500; color: var(--muted2);
+      transition: all 0.18s; cursor: pointer; position: relative;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-link.active { color: var(--text); }
+    .nav-link .dropdown-arrow { font-size: 0.6rem; margin-left: 4px; transition: transform 0.2s; }
+    .nav-link:hover .dropdown-arrow { transform: rotate(180deg); }
+
+    /* Dropdown */
+    .has-dropdown { position: relative; }
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px; min-width: 220px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      opacity: 0; pointer-events: none;
+      transform: translateX(-50%) translateY(-8px);
+      transition: all 0.2s ease;
+    }
+    .has-dropdown:hover .nav-dropdown {
+      opacity: 1; pointer-events: all;
+      transform: translateX(-50%) translateY(0);
+    }
+    .dd-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 0.84rem; color: var(--muted2);
+      transition: all 0.15s; cursor: pointer;
+    }
+    .dd-item:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .dd-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; flex-shrink: 0;
+    }
+    .dd-icon.red { background: rgba(255,51,51,0.15); color: var(--accent); }
+    .dd-icon.blue { background: rgba(77,158,255,0.15); color: var(--blue); }
+    .dd-icon.green { background: rgba(0,229,160,0.15); color: var(--green); }
+    .dd-icon.yellow { background: rgba(255,197,66,0.15); color: var(--yellow); }
+    .dd-text .t { font-weight: 600; font-size: 0.83rem; color: var(--text); }
+    .dd-text .d { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+
+    /* Nav CTA Buttons */
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .btn-outline {
+      padding: 9px 20px; border: 1px solid var(--border2);
+      border-radius: 9px; font-size: 0.84rem; font-weight: 600;
+      color: var(--muted2); cursor: pointer; transition: all 0.18s;
+      font-family: var(--dm); background: transparent;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: rgba(255,51,51,0.06); }
+    .btn-cta {
+      padding: 9px 22px; background: var(--accent);
+      border: none; border-radius: 9px;
+      font-size: 0.84rem; font-weight: 700; color: #fff;
+      cursor: pointer; transition: all 0.2s;
+      font-family: var(--dm); position: relative; overflow: hidden;
+    }
+    .btn-cta::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      transform: translateX(-100%); transition: transform 0.4s;
+    }
+    .btn-cta:hover { background: #d62a2a; box-shadow: 0 8px 24px rgba(255,51,51,0.4); transform: translateY(-1px); }
+    .btn-cta:hover::before { transform: translateX(100%); }
+
+    /* Hamburger */
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 6px; border: none; background: none; }
+    .hamburger span { width: 22px; height: 2px; background: var(--muted2); border-radius: 2px; transition: all 0.25s; display: block; }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Mobile Menu */
+    .mobile-menu {
+      display: none; position: fixed; top: var(--nav-h); left: 0; right: 0; z-index: 999;
+      background: rgba(7,9,15,0.97); backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border); padding: 20px 24px 28px;
+      flex-direction: column; gap: 6px;
+      animation: slideDown 0.25s ease;
+    }
+    .mobile-menu.show { display: flex; }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+    .mob-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 10px;
+      font-size: 0.9rem; font-weight: 500; color: var(--muted2);
+      transition: all 0.15s; cursor: pointer;
+    }
+    .mob-link:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .mob-link i { width: 20px; text-align: center; color: var(--accent); }
+    .mob-divider { height: 1px; background: var(--border); margin: 8px 0; }
+    .mob-cta { margin-top: 8px; }
+
+    /* ════════════════════════════════════════
+       HERO SECTION
+    ════════════════════════════════════════ */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: calc(var(--nav-h) + 40px) 40px 80px;
+      text-align: center;
+    }
+    .hero-inner { max-width: 900px; }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 18px; border-radius: 30px;
+      background: rgba(255,51,51,0.08); border: 1px solid rgba(255,51,51,0.2);
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .eyebrow-dot {
+      width: 7px; height: 7px; background: var(--accent); border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+    .hero-title {
+      font-family: var(--syne);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 800; line-height: 1.05; letter-spacing: -2px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .hero-title .accent-word {
+      background: linear-gradient(135deg, var(--accent), var(--accent2) 50%, var(--yellow));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-title .underline-word {
+      position: relative; display: inline-block;
+    }
+    .hero-title .underline-word::after {
+      content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px; animation: growLine 0.8s 0.7s ease both;
+      transform-origin: left; transform: scaleX(0);
+    }
+    @keyframes growLine { to { transform: scaleX(1); } }
+
+    .hero-desc {
+      font-size: 1.1rem; color: var(--muted2); line-height: 1.8;
+      max-width: 680px; margin: 0 auto 40px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+    .hero-desc em { color: rgba(255,255,255,0.65); font-style: normal; }
+
+    .hero-buttons {
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      flex-wrap: wrap; margin-bottom: 60px;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .hero-btn-primary {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 14px 32px; background: var(--accent); color: #fff;
+      border: none; border-radius: 12px; font-family: var(--dm);
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      transition: all 0.2s; box-shadow: 0 8px 32px rgba(255,51,51,0.35);
+    }
+    .hero-btn-primary:hover { background: #d62a2a; transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,51,51,0.5); }
+    .hero-btn-secondary {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 13px 28px; background: rgba(255,255,255,0.06); color: var(--text);
+      border: 1px solid var(--border2); border-radius: 12px;
+      font-family: var(--dm); font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .hero-btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
+    /* Hero stats strip */
+    .hero-stats {
+      display: flex; align-items: center; justify-content: center; gap: 0;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; max-width: 700px; margin: 0 auto;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+    .h-stat {
+      flex: 1; padding: 20px 24px; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .h-stat:last-child { border-right: none; }
+    .h-stat-val {
+      font-family: var(--syne); font-size: 1.7rem; font-weight: 800; line-height: 1;
+      background: linear-gradient(135deg, var(--text), var(--muted2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .h-stat-val.red { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; }
+    .h-stat-val.green { background: linear-gradient(135deg, var(--green), #34d399); -webkit-background-clip: text; background-clip: text; }
+    .h-stat-val.yellow { background: linear-gradient(135deg, var(--yellow), #f97316); -webkit-background-clip: text; background-clip: text; }
+    .h-stat-lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ════════════════════════════════════════
+       STOPLIGHT BAND
+    ════════════════════════════════════════ */
+    .stoplight-band {
+      position: relative; z-index: 1;
+      display: flex; justify-content: center; gap: 16px;
+      padding: 32px 40px; flex-wrap: wrap;
+    }
+    .sl-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 28px; border-radius: 14px; border: 1px solid;
+      min-width: 200px; cursor: default; transition: transform 0.2s;
+    }
+    .sl-card:hover { transform: translateY(-3px); }
+    .sl-card.g { background: rgba(0,229,160,0.06); border-color: rgba(0,229,160,0.2); }
+    .sl-card.y { background: rgba(255,197,66,0.06); border-color: rgba(255,197,66,0.2); }
+    .sl-card.r { background: rgba(255,51,51,0.06); border-color: rgba(255,51,51,0.2); }
+    .sl-bulb { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+    .sl-card.g .sl-bulb { background: var(--green); box-shadow: 0 0 12px var(--green); animation: glowGreen 2s ease-in-out infinite; }
+    .sl-card.y .sl-bulb { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); animation: glowYellow 2s ease-in-out infinite; }
+    .sl-card.r .sl-bulb { background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: glowRed 1s ease-in-out infinite; }
+    @keyframes glowGreen { 0%,100%{box-shadow:0 0 8px var(--green)} 50%{box-shadow:0 0 18px var(--green)} }
+    @keyframes glowYellow { 0%,100%{box-shadow:0 0 8px var(--yellow)} 50%{box-shadow:0 0 18px var(--yellow)} }
+    @keyframes glowRed { 0%,100%{box-shadow:0 0 8px var(--accent)} 50%{box-shadow:0 0 20px var(--accent)} }
+    .sl-info .sl-title { font-weight: 700; font-size: 0.9rem; }
+    .sl-card.g .sl-info .sl-title { color: var(--green); }
+    .sl-card.y .sl-info .sl-title { color: var(--yellow); }
+    .sl-card.r .sl-info .sl-title { color: var(--accent); }
+    .sl-info .sl-desc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ════════════════════════════════════════
+       FEATURES SECTION
+    ════════════════════════════════════════ */
+    section { position: relative; z-index: 1; }
+    .section-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 20px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--muted2); margin-bottom: 18px;
+    }
+    .section-title {
+      font-family: var(--syne); font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800; letter-spacing: -1px; line-height: 1.15;
+      margin-bottom: 14px;
+    }
+    .section-sub { font-size: 1rem; color: var(--muted2); max-width: 560px; line-height: 1.7; }
+
+    .features-section { padding: 100px 40px; }
+    .features-section .inner { max-width: 1200px; margin: 0 auto; }
+    .features-header { text-align: center; margin-bottom: 64px; }
+    .features-header .section-sub { margin: 0 auto; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+    .feature-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 18px; padding: 28px; transition: all 0.25s;
+      position: relative; overflow: hidden; cursor: default;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-card:hover { border-color: var(--border2); transform: translateY(-5px); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon-wrap {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; margin-bottom: 18px; transition: transform 0.25s;
+    }
+    .feature-card:hover .feature-icon-wrap { transform: scale(1.1) rotate(-5deg); }
+    .fi-red { background: rgba(255,51,51,0.12); color: var(--accent); }
+    .fi-green { background: rgba(0,229,160,0.12); color: var(--green); }
+    .fi-blue { background: rgba(77,158,255,0.12); color: var(--blue); }
+    .fi-yellow { background: rgba(255,197,66,0.12); color: var(--yellow); }
+    .fi-purple { background: rgba(168,85,247,0.12); color: var(--purple); }
+    .fi-orange { background: rgba(255,100,40,0.12); color: var(--accent2); }
+    .feature-card h3 { font-family: var(--syne); font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { font-size: 0.875rem; color: var(--muted2); line-height: 1.7; }
+    .feature-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin-top: 16px; padding: 4px 10px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 600; background: rgba(255,255,255,0.05); color: var(--muted);
+    }
+
+    /* ════════════════════════════════════════
+       HOW IT WORKS
+    ════════════════════════════════════════ */
+    .how-section { padding: 100px 40px; background: linear-gradient(180deg, transparent, rgba(13,17,28,0.8), transparent); }
+    .how-section .inner { max-width: 1100px; margin: 0 auto; }
+    .how-header { text-align: center; margin-bottom: 64px; }
+    .steps-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; position: relative; }
+    .steps-row::before {
+      content: ''; position: absolute; top: 28px; left: 12.5%; right: 12.5%; height: 2px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--blue) 50%, var(--green) 100%);
+      opacity: 0.25; z-index: 0;
+    }
+    .step-item { text-align: center; padding: 0 16px; position: relative; z-index: 1; }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--syne); font-size: 1.1rem; font-weight: 800;
+      margin: 0 auto 20px; border: 2px solid;
+      transition: all 0.25s;
+    }
+    .step-num.s1 { background: rgba(255,51,51,0.12); border-color: var(--accent); color: var(--accent); }
+    .step-num.s2 { background: rgba(255,197,66,0.12); border-color: var(--yellow); color: var(--yellow); }
+    .step-num.s3 { background: rgba(77,158,255,0.12); border-color: var(--blue); color: var(--blue); }
+    .step-num.s4 { background: rgba(0,229,160,0.12); border-color: var(--green); color: var(--green); }
+    .step-item:hover .step-num { transform: scale(1.1); box-shadow: 0 0 20px currentColor; }
+    .step-item h4 { font-family: var(--syne); font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .step-item p { font-size: 0.82rem; color: var(--muted2); line-height: 1.6; }
+
+    /* ════════════════════════════════════════
+       MONGODB ATLAS SECTION
+    ════════════════════════════════════════ */
+    .mongo-section { padding: 100px 40px; }
+    .mongo-section .inner { max-width: 1000px; margin: 0 auto; }
+    .mongo-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 60px; align-items: center; }
+    .mongo-left .section-sub { margin-bottom: 28px; }
+
+    .mongo-uri-card {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; margin-bottom: 20px;
+    }
+    .muc-header {
+      padding: 10px 16px; background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px;
+    }
+    .muc-header i { color: var(--green); }
+    .mongo-code {
+      font-family: var(--mono); font-size: 0.78rem; color: var(--muted2);
+      padding: 14px 16px; line-height: 1.6;
+    }
+    .mongo-code .kw { color: var(--accent2); }
+    .mongo-code .str { color: var(--green); }
+    .mongo-code .cmt { color: var(--muted); font-style: italic; }
+
+    .mongo-steps-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .msl-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 18px; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 11px; transition: all 0.2s; cursor: default;
+    }
+    .msl-item:hover { border-color: var(--border2); background: var(--bg3); }
+    .msl-num {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      background: rgba(255,51,51,0.12); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--syne); font-size: 0.78rem; font-weight: 800;
+    }
+    .msl-text .msl-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 2px; }
+    .msl-text .msl-desc { font-size: 0.77rem; color: var(--muted); }
+
+    /* Atlas Connect Form */
+    .mongo-right { }
+    .connect-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; position: relative; overflow: hidden;
+    }
+    .connect-card::before {
+      content: ''; position: absolute; top: -60px; right: -60px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(0,229,160,0.08), transparent 70%);
+      border-radius: 50%;
+    }
+    .connect-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .mongo-logo {
+      width: 46px; height: 46px; background: linear-gradient(135deg, #00ed64, #00684a);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; color: #fff; font-family: var(--syne); font-weight: 900;
+    }
+    .connect-card-header h3 { font-family: var(--syne); font-size: 1.1rem; font-weight: 800; }
+    .connect-card-header p { font-size: 0.78rem; color: var(--muted); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 0.76rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px;
+      margin-bottom: 7px;
+    }
+    .form-input {
+      width: 100%; padding: 11px 14px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text);
+      font-family: var(--mono); font-size: 0.82rem; outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus { border-color: var(--green); background: rgba(0,229,160,0.03); box-shadow: 0 0 0 3px rgba(0,229,160,0.1); }
+    .form-input::placeholder { color: rgba(100,116,139,0.6); font-family: var(--mono); }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn-connect {
+      width: 100%; padding: 13px; margin-top: 8px;
+      background: linear-gradient(135deg, #00ed64, #00a84f);
+      border: none; border-radius: 10px; color: #fff;
+      font-family: var(--dm); font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+      justify-content: center; gap: 9px;
+    }
+    .btn-connect:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,237,100,0.3); filter: brightness(1.08); }
+    .btn-connect:active { transform: translateY(0); }
+    .btn-connect.loading { opacity: 0.7; pointer-events: none; }
+
+    .connection-status {
+      display: none; margin-top: 14px; padding: 11px 14px;
+      border-radius: 9px; font-size: 0.82rem; font-weight: 600;
+      display: flex; align-items: center; gap: 9px; display: none;
+    }
+    .connection-status.success { background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.25); color: var(--green); }
+    .connection-status.error { background: rgba(255,51,51,0.1); border: 1px solid rgba(255,51,51,0.25); color: var(--accent); }
+    .connection-status.show { display: flex; }
+
+    .uri-hint { margin-top: 14px; padding: 11px 14px; background: rgba(77,158,255,0.06); border: 1px solid rgba(77,158,255,0.15); border-radius: 9px; font-size: 0.77rem; color: #93c5fd; display: flex; align-items: flex-start; gap: 8px; }
+    .uri-hint i { margin-top: 1px; flex-shrink: 0; }
+
+    /* ════════════════════════════════════════
+       RESEARCH SECTION
+    ════════════════════════════════════════ */
+    .research-section { padding: 100px 40px; }
+    .research-section .inner { max-width: 1200px; margin: 0 auto; }
+    .research-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .research-paper-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; position: relative; overflow: hidden;
+    }
+    .rp-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 12px; background: rgba(255,51,51,0.1); border: 1px solid rgba(255,51,51,0.2);
+      border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.8px; color: var(--accent); margin-bottom: 18px;
+    }
+    .rp-title { font-family: var(--syne); font-size: 1.15rem; font-weight: 800; line-height: 1.35; margin-bottom: 10px; }
+    .rp-authors { font-size: 0.82rem; color: var(--muted2); margin-bottom: 18px; }
+    .rp-authors strong { color: var(--text); }
+    .rp-abstract { font-size: 0.82rem; color: var(--muted); line-height: 1.75; border-top: 1px solid var(--border); padding-top: 16px; }
+    .rp-doi { margin-top: 16px; font-family: var(--mono); font-size: 0.73rem; color: var(--blue); }
+    .rp-doi i { margin-right: 6px; }
+
+    .key-findings { display: flex; flex-direction: column; gap: 16px; }
+    .finding-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 18px; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 13px; transition: all 0.2s;
+    }
+    .finding-item:hover { border-color: var(--border2); transform: translateX(4px); }
+    .finding-icon {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+    }
+    .finding-body h4 { font-size: 0.875rem; font-weight: 700; margin-bottom: 4px; }
+    .finding-body p { font-size: 0.78rem; color: var(--muted2); line-height: 1.6; }
+
+    /* ════════════════════════════════════════
+       CTA SECTION
+    ════════════════════════════════════════ */
+    .cta-section {
+      padding: 100px 40px;
+      background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255,51,51,0.08), transparent);
+    }
+    .cta-inner {
+      max-width: 700px; margin: 0 auto; text-align: center;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 24px; padding: 60px 40px; position: relative; overflow: hidden;
+    }
+    .cta-inner::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--yellow));
+    }
+    .cta-inner h2 { font-family: var(--syne); font-size: 2rem; font-weight: 800; margin-bottom: 14px; letter-spacing: -0.8px; }
+    .cta-inner p { color: var(--muted2); margin-bottom: 32px; font-size: 0.95rem; line-height: 1.7; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* ════════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════════ */
+    footer {
+      position: relative; z-index: 1;
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 48px 40px 28px;
+    }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+    .footer-brand .nav-logo { margin-bottom: 14px; cursor: default; }
+    .footer-brand p { font-size: 0.83rem; color: var(--muted); line-height: 1.7; max-width: 280px; }
+    .footer-col h4 { font-family: var(--syne); font-size: 0.85rem; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+    .footer-col ul { display: flex; flex-direction: column; gap: 9px; }
+    .footer-col ul li { font-size: 0.83rem; color: var(--muted); cursor: pointer; transition: color 0.15s; }
+    .footer-col ul li:hover { color: var(--text); }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.78rem; color: var(--muted); }
+    .footer-badges { display: flex; gap: 8px; }
+    .f-badge { padding: 4px 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 6px; font-size: 0.7rem; color: var(--muted); font-family: var(--mono); }
+
+    /* ════════════════════════════════════════
+       SCROLL REVEAL
+    ════════════════════════════════════════ */
+    .reveal { opacity: 0; transform: translateY(28px); transition: all 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════ */
+    @media (max-width: 1100px) {
+      .features-grid { grid-template-columns: repeat(2,1fr); }
+      .footer-top { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 900px) {
+      .navbar { padding: 0 24px; }
+      .nav-links, .nav-actions .btn-outline { display: none; }
+      .hamburger { display: flex; }
+      .mongo-grid, .research-grid { grid-template-columns: 1fr; }
+      .steps-row { grid-template-columns: repeat(2,1fr); gap: 32px; }
+      .steps-row::before { display: none; }
+    }
+    @media (max-width: 600px) {
+      .hero { padding: calc(var(--nav-h) + 24px) 20px 60px; }
+      .hero-title { letter-spacing: -1px; }
+      .hero-stats { flex-direction: column; }
+      .h-stat { border-right: none; border-bottom: 1px solid var(--border); }
+      .h-stat:last-child { border-bottom: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps-row { grid-template-columns: 1fr; }
+      .footer-top { grid-template-columns: 1fr; }
+      .features-section, .how-section, .mongo-section, .research-section, .cta-section { padding: 60px 20px; }
+      .input-row { grid-template-columns: 1fr; }
+      .cta-inner { padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- BG Effects -->
+<div class="bg-fx">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+<div class="grid-bg"></div>
+
+<!-- ══════════════ NAVBAR ══════════════ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-logo" onclick="scrollToTop()">
+    <div class="logo-shield"><i class="fas fa-shield-virus"></i></div>
+    <div class="logo-text">
+      <span class="main">DR<strong style="color:var(--accent)">Manager</strong></span>
+      <span class="sub">Recovery System</span>
+    </div>
+  </div>
+
+  <div class="nav-links">
+    <span class="nav-link" onclick="scrollToSection('features')">Features</span>
+    <span class="nav-link" onclick="scrollToSection('how')">How It Works</span>
+
+    <span class="nav-link has-dropdown">
+      Connect <i class="fas fa-chevron-down dropdown-arrow"></i>
+      <div class="nav-dropdown">
+        <div class="dd-item" onclick="scrollToSection('mongo')">
+          <div class="dd-icon green"><i class="fas fa-leaf"></i></div>
+          <div class="dd-text"><div class="t">MongoDB Atlas</div><div class="d">Cloud database connection</div></div>
+        </div>
+        <div class="dd-item" onclick="window.location.href='login.html'">
+          <div class="dd-icon blue"><i class="fas fa-sign-in-alt"></i></div>
+          <div class="dd-text"><div class="t">Login</div><div class="d">Access your dashboard</div></div>
+        </div>
+        <div class="dd-item" onclick="window.location.href='dashboard.html'">
+          <div class="dd-icon red"><i class="fas fa-th-large"></i></div>
+          <div class="dd-text"><div class="t">Dashboard</div><div class="d">View recovery plans</div></div>
+        </div>
+      </div>
+    </span>
+
+    <span class="nav-link" onclick="scrollToSection('research')">Research</span>
+    <span class="nav-link" onclick="scrollToSection('cta')">Get Started</span>
+  </div>
+
+  <div class="nav-actions">
+    <button class="btn-outline" onclick="window.location.href='login.html'">Sign In</button>
+    <button class="btn-cta" onclick="window.location.href='dashboard.html'"><i class="fas fa-rocket"></i> Open Dashboard</button>
+    <button class="hamburger" id="hamburger" onclick="toggleMobile()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mob-link" onclick="scrollToSection('features'); closeMobile()"><i class="fas fa-star"></i> Features</div>
+  <div class="mob-link" onclick="scrollToSection('how'); closeMobile()"><i class="fas fa-list-ol"></i> How It Works</div>
+  <div class="mob-link" onclick="scrollToSection('mongo'); closeMobile()"><i class="fas fa-leaf"></i> MongoDB Atlas</div>
+  <div class="mob-link" onclick="scrollToSection('research'); closeMobile()"><i class="fas fa-book-open"></i> Research</div>
+  <div class="mob-divider"></div>
+  <div class="mob-link" onclick="window.location.href='login.html'"><i class="fas fa-sign-in-alt"></i> Sign In</div>
+  <button class="btn-cta mob-cta" onclick="window.location.href='dashboard.html'" style="width:100%;padding:13px;border-radius:10px;font-size:.92rem;">
+    <i class="fas fa-rocket"></i> Open Dashboard
+  </button>
+</div>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero" id="home">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">
+      <div class="eyebrow-dot"></div>
+      IEEE Research-Powered Platform · EMR 2020
+    </div>
+    <h1 class="hero-title">
+      Recover Faster.<br/>
+      <span class="accent-word">Restart Stronger.</span><br/>
+      <span class="underline-word">Plan Smarter.</span>
+    </h1>
+    <p class="hero-desc">
+      A complete disaster recovery management system built on the IEEE research
+      <em>"Recovering From a Major Disaster — The Management Challenge"</em> by Trybula &amp; Newberry.
+      Track plans, manage teams, and apply the proven <em>Stoplight approach</em> to every crisis.
+    </p>
+    <div class="hero-buttons">
+      <button class="hero-btn-primary" onclick="window.location.href='dashboard.html'">
+        <i class="fas fa-th-large"></i> Open Dashboard
+      </button>
+      <button class="hero-btn-secondary" onclick="scrollToSection('mongo')">
+        <i class="fas fa-leaf" style="color:var(--green)"></i> Connect MongoDB
+      </button>
+      <button class="hero-btn-secondary" onclick="window.location.href='login.html'">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+    </div>
+    <div class="hero-stats">
+      <div class="h-stat"><div class="h-stat-val red">80%</div><div class="h-stat-lbl">Businesses fail from cash flow</div></div>
+      <div class="h-stat"><div class="h-stat-val yellow">3x</div><div class="h-stat-lbl">Faster restart with planning</div></div>
+      <div class="h-stat"><div class="h-stat-val green">100%</div><div class="h-stat-lbl">Recovery visibility</div></div>
+      <div class="h-stat"><div class="h-stat-val">24/7</div><div class="h-stat-lbl">Monitoring & alerts</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Stoplight Band -->
+<div class="stoplight-band">
+  <div class="sl-card g"><div class="sl-bulb"></div><div class="sl-info"><div class="sl-title">Green — On Track</div><div class="sl-desc">All systems operational, recovery progressing</div></div></div>
+  <div class="sl-card y"><div class="sl-bulb"></div><div class="sl-info"><div class="sl-title">Yellow — Caution</div><div class="sl-desc">Monitoring required, risks identified</div></div></div>
+  <div class="sl-card r"><div class="sl-bulb"></div><div class="sl-info"><div class="sl-title">Red — Critical</div><div class="sl-desc">Immediate action required, high impact</div></div></div>
+</div>
+
+<!-- ══════════════ FEATURES ══════════════ -->
+<section class="features-section" id="features">
+  <div class="inner">
+    <div class="features-header reveal">
+      <div class="section-label"><i class="fas fa-star"></i> Key Features</div>
+      <h2 class="section-title">Everything You Need for<br/>Disaster Recovery</h2>
+      <p class="section-sub">Built directly from the frameworks and methodologies described in the IEEE research paper on managing organisational recovery.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon-wrap fi-red"><i class="fas fa-traffic-light"></i></div>
+        <h3>Stoplight Risk Approach</h3>
+        <p>Apply the Green/Yellow/Red stoplight methodology from the paper to every recovery plan. Instantly identify which elements are on track, at risk, or require immediate action.</p>
+        <span class="feature-tag"><i class="fas fa-check"></i> From the Paper</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon-wrap fi-blue"><i class="fas fa-clipboard-list"></i></div>
+        <h3>Recovery Plan Management</h3>
+        <p>Create, edit, and track comprehensive disaster recovery plans with all fields: team leader, affected department, severity, status, and step-by-step recovery procedures.</p>
+        <span class="feature-tag"><i class="fas fa-file-alt"></i> Full CRUD</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon-wrap fi-green"><i class="fas fa-users"></i></div>
+        <h3>Recovery Team Tracker</h3>
+        <p>Assign team leaders, manage recovery teams, and track personnel availability — addressing the paper's key challenge of workforce management during restarts.</p>
+        <span class="feature-tag"><i class="fas fa-user-check"></i> Workforce Mgmt</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon-wrap fi-yellow"><i class="fas fa-link"></i></div>
+        <h3>Supply Chain Recovery</h3>
+        <p>Monitor supply chain disruptions and apply dual-supplier strategies. Track procurement status with Green/Yellow/Red ratings as recommended by the research.</p>
+        <span class="feature-tag"><i class="fas fa-boxes"></i> Supply Chain</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon-wrap fi-purple"><i class="fas fa-chart-bar"></i></div>
+        <h3>Analytics Dashboard</h3>
+        <p>Visual charts showing recovery plans per month and disaster type distribution. Real-time statistics on active disasters, critical issues, and team performance.</p>
+        <span class="feature-tag"><i class="fas fa-chart-pie"></i> Chart.js Powered</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon-wrap fi-orange"><i class="fas fa-file-pdf"></i></div>
+        <h3>Document Management</h3>
+        <p>Upload and store PDF recovery documents linked to each plan. Inline PDF preview, secure downloads, and version tracking for all recovery documentation.</p>
+        <span class="feature-tag"><i class="fas fa-upload"></i> PDF Upload</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ HOW IT WORKS ══════════════ -->
+<section class="how-section" id="how">
+  <div class="inner">
+    <div class="how-header reveal">
+      <div class="section-label"><i class="fas fa-list-ol"></i> Process</div>
+      <h2 class="section-title">From Crisis to Recovery</h2>
+      <p class="section-sub">The four-phase approach aligned with the Fast Restart methodology from the IEEE research paper.</p>
+    </div>
+    <div class="steps-row">
+      <div class="step-item reveal">
+        <div class="step-num s1">01</div>
+        <h4>Assess & Identify</h4>
+        <p>Evaluate personnel availability, supply chain status, and financial position. Apply Stoplight ratings to all critical items.</p>
+      </div>
+      <div class="step-item reveal">
+        <div class="step-num s2">02</div>
+        <h4>Plan & Assign</h4>
+        <p>Create detailed recovery plans, assign team leaders, define recovery steps, and set target timelines for each department.</p>
+      </div>
+      <div class="step-item reveal">
+        <div class="step-num s3">03</div>
+        <h4>Execute & Monitor</h4>
+        <p>Track plan execution, update risk statuses in real time, and monitor cash flow and supply chain reconstruction progress.</p>
+      </div>
+      <div class="step-item reveal">
+        <div class="step-num s4">04</div>
+        <h4>Review & Improve</h4>
+        <p>Document lessons learned, archive completed plans, and update the organisation's disaster preparedness for the next event.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ MONGODB ATLAS ══════════════ -->
+<section class="mongo-section" id="mongo">
+  <div class="inner">
+    <div class="mongo-grid">
+      <div class="mongo-left reveal">
+        <div class="section-label"><i class="fas fa-leaf" style="color:var(--green)"></i> MongoDB Atlas</div>
+        <h2 class="section-title">Connect Your<br/>Cloud Database</h2>
+        <p class="section-sub">Link the application to your free MongoDB Atlas cluster to persist all recovery plans, users, and documents in the cloud.</p>
+
+        <div class="mongo-uri-card">
+          <div class="muc-header"><i class="fas fa-code"></i> .env — Configuration</div>
+          <div class="mongo-code">
+            <span class="cmt"># MongoDB Atlas Connection String</span><br/>
+            <span class="kw">MONGODB_URI</span>=<span class="str">"mongodb+srv://&lt;user&gt;:&lt;pass&gt;</span><br/>
+            <span class="str">&nbsp;&nbsp;@cluster0.xxxxx.mongodb.net/</span><br/>
+            <span class="str">&nbsp;&nbsp;disaster_recovery_db"</span><br/><br/>
+            <span class="kw">SESSION_SECRET</span>=<span class="str">"your_32_char_secret"</span><br/>
+            <span class="kw">PORT</span>=<span class="str">3000</span>
+          </div>
+        </div>
+
+        <ol class="mongo-steps-list">
+          <li class="msl-item">
+            <div class="msl-num">1</div>
+            <div class="msl-text"><div class="msl-title">Create Free Atlas Cluster</div><div class="msl-desc">Go to mongodb.com/cloud/atlas → New Project → Free M0 tier</div></div>
+          </li>
+          <li class="msl-item">
+            <div class="msl-num">2</div>
+            <div class="msl-text"><div class="msl-title">Add Database User</div><div class="msl-desc">Security → Database Access → Add new user with password</div></div>
+          </li>
+          <li class="msl-item">
+            <div class="msl-num">3</div>
+            <div class="msl-text"><div class="msl-title">Whitelist IP Address</div><div class="msl-desc">Network Access → Add IP → 0.0.0.0/0 (allow all)</div></div>
+          </li>
+          <li class="msl-item">
+            <div class="msl-num">4</div>
+            <div class="msl-text"><div class="msl-title">Copy Connection String</div><div class="msl-desc">Connect → Drivers → Copy URI and paste in .env file</div></div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="mongo-right reveal">
+        <div class="connect-card">
+          <div class="connect-card-header">
+            <div class="mongo-logo">M</div>
+            <div>
+              <h3>Atlas Connection</h3>
+              <p>Test your MongoDB URI instantly</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">MongoDB Atlas URI</label>
+            <input type="text" class="form-input" id="mongoUri"
+              placeholder="mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net/db"
+              value="mongodb+srv://admin:Admin@123@cluster0.xxxxx.mongodb.net/disaster_recovery_db" />
+          </div>
+          <div class="input-row">
+            <div class="form-group">
+              <label class="form-label">Database Name</label>
+              <input type="text" class="form-input" id="dbName" placeholder="disaster_recovery_db" value="disaster_recovery_db" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Port</label>
+              <input type="text" class="form-input" id="port" placeholder="3000" value="3000" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Session Secret</label>
+            <input type="text" class="form-input" id="sessionSecret" placeholder="min_32_characters_random_string" value="dr_manager_secret_key_2024_secure_random" />
+          </div>
+
+          <button class="btn-connect" id="connectBtn" onclick="testConnection()">
+            <i class="fas fa-plug"></i> Test & Save Connection
+          </button>
+
+          <div class="connection-status" id="connStatus"></div>
+
+          <div class="uri-hint">
+            <i class="fas fa-info-circle"></i>
+            <span>This simulates connection testing. In the real Node.js app, these values go in your <code style="font-family:var(--mono);color:var(--blue)">.env</code> file and the server connects automatically on startup.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ RESEARCH ══════════════ -->
+<section class="research-section" id="research">
+  <div class="inner">
+    <div class="research-grid">
+      <div class="research-paper-card reveal">
+        <div class="rp-badge"><i class="fas fa-certificate"></i> IEEE Peer-Reviewed</div>
+        <div class="rp-title">Recovering From a Major Disaster — The Management Challenge</div>
+        <div class="rp-authors"><strong>Walt Trybula</strong> &amp; <strong>Deb Newberry</strong> · IEEE Engineering Management Review, Vol. 48, No. 3, Sept. 2020</div>
+        <div class="rp-abstract">"The world is beginning a recovery from the global disaster caused by the reaction to the coronavirus known as COVID-19. The restarting presents an opportunity to become stronger and more competitive. This article provides thoughts on the means to move forward quickly to reestablish proficiency and regain former capabilities."</div>
+        <div class="rp-doi"><i class="fas fa-link"></i> DOI: 10.1109/EMR.2020.3006802</div>
+      </div>
+      <div class="key-findings reveal">
+        <h3 class="section-title" style="font-size:1.6rem;margin-bottom:24px;">Key Findings Applied</h3>
+        <div class="finding-item">
+          <div class="finding-icon fi-red"><i class="fas fa-traffic-light"></i></div>
+          <div class="finding-body"><h4>Stoplight Approach</h4><p>Green/Yellow/Red ratings for supply chain items, processes, and customer interactions to identify at-risk elements immediately.</p></div>
+        </div>
+        <div class="finding-item">
+          <div class="finding-icon fi-yellow"><i class="fas fa-bolt"></i></div>
+          <div class="finding-body"><h4>Fast Restart Protocol</h4><p>"Plans are worthless, planning is everything." — Eisenhower. Move forward rapidly with a structured restart methodology.</p></div>
+        </div>
+        <div class="finding-item">
+          <div class="finding-icon fi-blue"><i class="fas fa-dollar-sign"></i></div>
+          <div class="finding-body"><h4>Cash Flow Priority</h4><p>80% of profitable small businesses that file for bankruptcy do so due to lack of cash flow — monitor continuously until positive.</p></div>
+        </div>
+        <div class="finding-item">
+          <div class="finding-icon fi-green"><i class="fas fa-sync-alt"></i></div>
+          <div class="finding-body"><h4>New Realignment</h4><p>Use the reset opportunity to modernise equipment, improve communications, and streamline the entire organisational structure.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ CTA ══════════════ -->
+<section class="cta-section" id="cta">
+  <div class="cta-inner reveal">
+    <h2>Ready to Build Your Recovery Plan?</h2>
+    <p>Start managing disaster recovery operations with the proven strategies from IEEE research. Connect your MongoDB Atlas database and launch in minutes.</p>
+    <div class="cta-btns">
+      <button class="hero-btn-primary" onclick="window.location.href='dashboard.html'">
+        <i class="fas fa-th-large"></i> Open Dashboard
+      </button>
+      <button class="hero-btn-secondary" onclick="scrollToSection('mongo')">
+        <i class="fas fa-leaf" style="color:var(--green)"></i> Connect MongoDB
+      </button>
+      <button class="hero-btn-secondary" onclick="window.location.href='login.html'">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="nav-logo">
+          <div class="logo-shield" style="width:36px;height:36px;font-size:.9rem;"><i class="fas fa-shield-virus"></i></div>
+          <div class="logo-text"><span class="main">DR<strong style="color:var(--accent)">Manager</strong></span></div>
+        </div>
+        <p>A disaster recovery management system built on IEEE research. Helping organisations plan, execute, and track recovery from any disaster using the Stoplight approach.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Application</h4>
+        <ul>
+          <li onclick="window.location.href='dashboard.html'">Dashboard</li>
+          <li onclick="window.location.href='login.html'">Sign In</li>
+          <li onclick="scrollToSection('features')">Features</li>
+          <li onclick="scrollToSection('how')">How It Works</li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Connect</h4>
+        <ul>
+          <li onclick="scrollToSection('mongo')">MongoDB Atlas</li>
+          <li onclick="scrollToSection('mongo')">Configuration</li>
+          <li>Node.js Setup</li>
+          <li>GitHub Repo</li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Research</h4>
+        <ul>
+          <li onclick="scrollToSection('research')">IEEE Paper</li>
+          <li>Stoplight Method</li>
+          <li>Fast Restart</li>
+          <li>Trybula & Newberry</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2024 DRManager · Based on IEEE EMR Vol.48 No.3 · DOI: 10.1109/EMR.2020.3006802</p>
+      <div class="footer-badges">
+        <span class="f-badge">HTML</span>
+        <span class="f-badge">CSS</span>
+        <span class="f-badge">JS</span>
+        <span class="f-badge">Chart.js</span>
+        <span class="f-badge">MongoDB</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════ SCRIPTS ══════════════ -->
+<script>
+  /* ── Navbar scroll effect ── */
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('navbar');
+    nav.classList.toggle('scrolled', window.scrollY > 30);
+  });
+
+  /* ── Smooth scroll ── */
+  function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    closeMobile();
+  }
+  function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+  /* ── Mobile menu ── */
+  function toggleMobile() {
+    const m = document.getElementById('mobileMenu');
+    const h = document.getElementById('hamburger');
+    m.classList.toggle('show');
+    h.classList.toggle('open');
+  }
+  function closeMobile() {
+    document.getElementById('mobileMenu').classList.remove('show');
+    document.getElementById('hamburger').classList.remove('open');
+  }
+
+  /* ── Scroll Reveal ── */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  /* ── MongoDB Connection Test ── */
+  function testConnection() {
+    const btn   = document.getElementById('connectBtn');
+    const status= document.getElementById('connStatus');
+    const uri   = document.getElementById('mongoUri').value.trim();
+    const db    = document.getElementById('dbName').value.trim();
+    const secret= document.getElementById('sessionSecret').value.trim();
+
+    if (!uri || !db || !secret) {
+      showStatus('error', '<i class="fas fa-exclamation-circle"></i> Please fill in all connection fields.');
+      return;
+    }
+    if (!uri.startsWith('mongodb')) {
+      showStatus('error', '<i class="fas fa-times-circle"></i> Invalid URI format. Must start with mongodb:// or mongodb+srv://');
+      return;
+    }
+
+    btn.classList.add('loading');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing connection…';
+
+    setTimeout(() => {
+      // Save to localStorage for demo
+      localStorage.setItem('drMongoConfig', JSON.stringify({ uri, db, secret, port: document.getElementById('port').value }));
+
+      btn.classList.remove('loading');
+      btn.innerHTML = '<i class="fas fa-check"></i> Connected & Saved!';
+      btn.style.background = 'linear-gradient(135deg, #00ed64, #00a84f)';
+
+      showStatus('success', '<i class="fas fa-check-circle"></i> Connection settings saved! Add these to your .env file to connect the Node.js server.');
+
+      setTimeout(() => {
+        btn.innerHTML = '<i class="fas fa-plug"></i> Test & Save Connection';
+        btn.style.background = '';
+      }, 3000);
+    }, 2000);
+  }
+
+  function showStatus(type, html) {
+    const s = document.getElementById('connStatus');
+    s.className = `connection-status ${type} show`;
+    s.innerHTML = html;
+  }
+
+  /* ── Active nav on scroll ── */
+  const sections = ['home','features','how','mongo','research','cta'];
+  window.addEventListener('scroll', () => {
+    const scrollY = window.scrollY + 120;
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && scrollY >= el.offsetTop && scrollY < el.offsetTop + el.offsetHeight) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      }
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DR Manager — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #060a12;
+      --surface: #0e1520;
+      --surface2: #141d2e;
+      --border: rgba(255,255,255,0.07);
+      --accent: #ff3b3b;
+      --accent2: #ff6b35;
+      --green: #00d68f;
+      --yellow: #ffcb57;
+      --text: #e8edf5;
+      --muted: #6b7a99;
+      --font: 'Outfit', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Animated BG ── */
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0; overflow: hidden;
+    }
+    .bg-orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); opacity: 0.18; animation: orbFloat 12s ease-in-out infinite;
+    }
+    .orb1 { width: 500px; height: 500px; background: radial-gradient(circle, #ff3b3b, transparent); top: -150px; left: -150px; animation-delay: 0s; }
+    .orb2 { width: 400px; height: 400px; background: radial-gradient(circle, #ff6b35, transparent); bottom: -100px; right: -100px; animation-delay: -4s; }
+    .orb3 { width: 300px; height: 300px; background: radial-gradient(circle, #1a6dff, transparent); top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: -8s; }
+    @keyframes orbFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(30px,-20px) scale(1.05); }
+      66% { transform: translate(-20px,30px) scale(0.95); }
+    }
+
+    /* Grid lines */
+    .grid-lines {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,59,59,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,59,59,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ── Layout ── */
+    .login-wrapper {
+      position: relative; z-index: 1;
+      display: grid; grid-template-columns: 1fr 480px;
+      width: 100%; min-height: 100vh;
+    }
+
+    /* ── Left Panel ── */
+    .left-panel {
+      padding: 50px; display: flex; flex-direction: column;
+      justify-content: space-between; position: relative;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 1.1rem; font-weight: 700;
+    }
+    .brand-icon {
+      width: 44px; height: 44px; background: var(--accent);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; box-shadow: 0 0 24px rgba(255,59,59,0.4);
+    }
+    .brand-text strong { color: var(--accent); }
+
+    .hero-section { max-width: 560px; }
+    .alert-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 16px; background: rgba(255,59,59,0.1);
+      border: 1px solid rgba(255,59,59,0.25); border-radius: 30px;
+      font-size: .72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--accent); margin-bottom: 28px;
+      animation: pulse-border 2s ease-in-out infinite;
+    }
+    @keyframes pulse-border {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,59,59,0.3); }
+      50% { box-shadow: 0 0 0 6px rgba(255,59,59,0); }
+    }
+    .alert-badge i { animation: blink 1.5s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .hero-title {
+      font-size: 3.2rem; font-weight: 900; line-height: 1.1;
+      margin-bottom: 18px; letter-spacing: -1.5px;
+    }
+    .hero-title .line2 { color: var(--accent); display: block; }
+    .hero-desc {
+      font-size: .95rem; color: var(--muted); line-height: 1.8;
+      margin-bottom: 36px; max-width: 460px;
+    }
+    .hero-desc em { color: rgba(255,255,255,0.6); font-style: normal; }
+
+    /* Stoplight indicators */
+    .stoplight-row {
+      display: flex; gap: 16px; margin-bottom: 36px;
+    }
+    .sl-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 18px; border-radius: 10px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+      font-size: .82rem; font-weight: 600; transition: all .2s;
+    }
+    .sl-item:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); }
+    .sl-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .sl-green .sl-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .sl-yellow .sl-dot { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+    .sl-red .sl-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .sl-green { color: var(--green); border-color: rgba(0,214,143,0.2); }
+    .sl-yellow { color: var(--yellow); border-color: rgba(255,203,87,0.2); }
+    .sl-red { color: var(--accent); border-color: rgba(255,59,59,0.2); }
+
+    /* Stats */
+    .stats-row { display: flex; gap: 24px; }
+    .stat-item { text-align: left; }
+    .stat-num {
+      font-size: 1.8rem; font-weight: 900; line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-top: 2px; }
+
+    .left-footer { font-size: .73rem; color: var(--muted); }
+    .left-footer a { color: rgba(255,255,255,0.4); }
+
+    /* ── Right Panel — Login Card ── */
+    .right-panel {
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 44px; position: relative; overflow: hidden;
+    }
+    .right-panel::before {
+      content: ''; position: absolute; top: -100px; right: -100px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,59,59,0.07), transparent 70%);
+      border-radius: 50%;
+    }
+    .login-card { width: 100%; max-width: 360px; position: relative; z-index: 1; }
+
+    .card-header { text-align: center; margin-bottom: 32px; }
+    .card-logo {
+      width: 60px; height: 60px; background: rgba(255,59,59,0.1);
+      border: 1px solid rgba(255,59,59,0.25); border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: var(--accent); margin: 0 auto 18px;
+    }
+    .card-header h2 { font-size: 1.55rem; font-weight: 800; margin-bottom: 6px; }
+    .card-header p { font-size: .84rem; color: var(--muted); }
+
+    /* Alert box */
+    .alert-box {
+      padding: 12px 14px; border-radius: 9px; margin-bottom: 20px;
+      font-size: .83rem; display: flex; align-items: center; gap: 10px;
+      display: none;
+    }
+    .alert-box.error { background: rgba(255,59,59,0.1); border: 1px solid rgba(255,59,59,0.25); color: #fca5a5; }
+    .alert-box.success { background: rgba(0,214,143,0.1); border: 1px solid rgba(0,214,143,0.25); color: #6ee7b7; }
+    .alert-box.show { display: flex; }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: .78rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .7px;
+      margin-bottom: 8px;
+    }
+    .input-wrap { position: relative; }
+    .input-wrap i.icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: .85rem; pointer-events: none;
+    }
+    .input-wrap input {
+      width: 100%; padding: 13px 14px 13px 42px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-family: var(--font);
+      font-size: .9rem; transition: all .2s; outline: none;
+    }
+    .input-wrap input:focus {
+      border-color: var(--accent);
+      background: rgba(255,59,59,0.04);
+      box-shadow: 0 0 0 3px rgba(255,59,59,0.1);
+    }
+    .input-wrap input::placeholder { color: rgba(107,122,153,0.6); }
+    .toggle-pw {
+      position: absolute; right: 0; top: 0; height: 100%;
+      padding: 0 14px; background: none; border: none;
+      color: var(--muted); cursor: pointer; font-size: .85rem;
+    }
+    .toggle-pw:hover { color: var(--text); }
+
+    .form-options {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; font-size: .8rem;
+    }
+    .checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .checkbox-wrap input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+    .checkbox-wrap span { color: var(--muted); }
+    .forgot-link { color: var(--accent); transition: opacity .2s; }
+    .forgot-link:hover { opacity: .7; }
+
+    .btn-login {
+      width: 100%; padding: 14px; background: var(--accent);
+      color: #fff; border: none; border-radius: 10px;
+      font-family: var(--font); font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+    }
+    .btn-login::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      transition: left .4s;
+    }
+    .btn-login:hover { background: #d62f2f; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,59,59,0.35); }
+    .btn-login:hover::before { left: 100%; }
+    .btn-login:active { transform: translateY(0); }
+    .btn-login.loading { pointer-events: none; opacity: .8; }
+
+    /* Demo credentials */
+    .demo-creds {
+      margin-top: 20px; padding: 14px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+    .demo-creds-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
+    .cred-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; font-size: .78rem;
+    }
+    .cred-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+    .cred-label { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .cred-val {
+      font-family: var(--mono); color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px;
+      font-size: .73rem; cursor: pointer; transition: all .2s;
+    }
+    .cred-val:hover { background: rgba(255,59,59,0.15); color: var(--accent); }
+
+    .sign-up-link { text-align: center; margin-top: 20px; font-size: .82rem; color: var(--muted); }
+    .sign-up-link a { color: var(--accent); font-weight: 600; }
+    .sign-up-link a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .login-wrapper { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { border-left: none; min-height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-canvas">
+    <div class="bg-orb orb1"></div>
+    <div class="bg-orb orb2"></div>
+    <div class="bg-orb orb3"></div>
+  </div>
+  <div class="grid-lines"></div>
+
+  <div class="login-wrapper">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="brand">
+        <div class="brand-icon"><i class="fas fa-shield-virus"></i></div>
+        <span>DR<strong>Manager</strong></span>
+      </div>
+
+      <div class="hero-section">
+        <div class="alert-badge">
+          <i class="fas fa-circle"></i> System Active — Ready for Recovery
+        </div>
+        <h1 class="hero-title">
+          Disaster Recovery<br/>
+          <span class="line2">Management System</span>
+        </h1>
+        <p class="hero-desc">
+          Built on the IEEE research <em>"Recovering From a Major Disaster — The Management Challenge"</em>
+          by Trybula &amp; Newberry. A complete platform for planning, tracking, and executing
+          disaster recovery operations using the proven <em>Stoplight approach</em>.
+        </p>
+
+        <div class="stoplight-row">
+          <div class="sl-item sl-green"><div class="sl-dot"></div> Green — On Track</div>
+          <div class="sl-item sl-yellow"><div class="sl-dot"></div> Yellow — At Risk</div>
+          <div class="sl-item sl-red"><div class="sl-dot"></div> Red — Critical</div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-item">
+            <div class="stat-num">80%</div>
+            <div class="stat-label">Businesses fail from cash flow</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">3x</div>
+            <div class="stat-label">Faster restart with planning</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">100%</div>
+            <div class="stat-label">Recovery plan visibility</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="left-footer">
+        Based on IEEE EMR Vol.48 No.3 &nbsp;·&nbsp; DOI: 10.1109/EMR.2020.3006802
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="login-card">
+        <div class="card-header">
+          <div class="card-logo"><i class="fas fa-shield-virus"></i></div>
+          <h2>Welcome Back</h2>
+          <p>Sign in to your recovery dashboard</p>
+        </div>
+
+        <div class="alert-box" id="alertBox">
+          <i class="fas fa-exclamation-circle"></i>
+          <span id="alertText"></span>
+        </div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Email Address</label>
+            <div class="input-wrap">
+              <i class="fas fa-envelope icon"></i>
+              <input type="email" id="email" placeholder="you@organisation.com" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrap">
+              <i class="fas fa-lock icon"></i>
+              <input type="password" id="password" placeholder="Enter your password" required />
+              <button type="button" class="toggle-pw" onclick="togglePw()"><i class="fas fa-eye" id="eyeIcon"></i></button>
+            </div>
+          </div>
+          <div class="form-options">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="remember" />
+              <span>Remember me</span>
+            </label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn-login" id="loginBtn">
+            <i class="fas fa-sign-in-alt"></i> &nbsp;Sign In to Dashboard
+          </button>
+        </form>
+
+        <div class="demo-creds">
+          <div class="demo-creds-title"><i class="fas fa-key"></i> &nbsp; Demo Credentials</div>
+          <div class="cred-row">
+            <span class="cred-label"><i class="fas fa-crown"></i> Admin</span>
+            <span class="cred-val" onclick="fillCreds('admin@drmanager.com','Admin@123')">admin@drmanager.com / Admin@123</span>
+          </div>
+          <div class="cred-row">
+            <span class="cred-label"><i class="fas fa-user"></i> User</span>
+            <span class="cred-val" onclick="fillCreds('user@drmanager.com','User@123')">user@drmanager.com / User@123</span>
+          </div>
+        </div>
+
+        <p class="sign-up-link">No account? <a href="dashboard.html">Continue as Guest →</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Demo users
+    const USERS = [
+      { email: 'admin@drmanager.com', password: 'Admin@123', name: 'Walt Trybula', role: 'admin', avatar: 'WT' },
+      { email: 'user@drmanager.com',  password: 'User@123',  name: 'Deb Newberry', role: 'user',  avatar: 'DN' },
+    ];
+
+    function showAlert(msg, type = 'error') {
+      const box = document.getElementById('alertBox');
+      document.getElementById('alertText').textContent = msg;
+      box.className = `alert-box ${type} show`;
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = document.getElementById('loginBtn');
+
+      btn.classList.add('loading');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> &nbsp;Signing in…';
+
+      setTimeout(() => {
+        const user = USERS.find(u => u.email === email && u.password === password);
+        if (user) {
+          showAlert('Login successful! Redirecting…', 'success');
+          sessionStorage.setItem('drUser', JSON.stringify(user));
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+        } else {
+          showAlert('Invalid email or password. Try the demo credentials below.');
+          btn.classList.remove('loading');
+          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> &nbsp;Sign In to Dashboard';
+        }
+      }, 1200);
+    }
+
+    function togglePw() {
+      const inp = document.getElementById('password');
+      const ico = document.getElementById('eyeIcon');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      ico.className = inp.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+    }
+
+    function fillCreds(email, pw) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = pw;
+    }
+
+    // Check already logged in
+    if (sessionStorage.getItem('drUser')) {
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+</html>
